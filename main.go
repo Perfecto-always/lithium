@@ -79,11 +79,15 @@ func WinMain() int {
 	w32.ShowWindow(hWnd, w32.SW_SHOWDEFAULT)
 	w32.UpdateWindow(hWnd)
 
-	var msg w32.MSG
-	for w32.GetMessage(&msg, hWnd, 0, 0) > 0 {
-		w32.TranslateMessage(&msg)
-		w32.DispatchMessage(&msg)
+	var msg *w32.MSG = (*w32.MSG)(unsafe.Pointer(w32.GlobalAlloc(0, (unsafe.Sizeof(w32.MSG{})))))
+	defer w32.GlobalFree(w32.HGLOBAL(unsafe.Pointer(msg)))
+
+	for w32.GetMessage(msg, 0, 0, 0) != 0 {
+		w32.TranslateMessage(msg)
+		w32.DispatchMessage(msg)
 	}
+
+	w32.GdiplusShutdown()
 
 	return int(msg.WParam)
 }
