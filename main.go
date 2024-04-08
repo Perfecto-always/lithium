@@ -1,6 +1,7 @@
 package main
 
 import (
+	"runtime"
 	"syscall"
 	"unsafe"
 
@@ -47,6 +48,9 @@ func WndProc(hWnd w32.HWND, msg uint32, wParam, lParam uintptr) uintptr {
 }
 
 func WinMain() int {
+	// Required so that we don't get random window freezes
+	runtime.LockOSThread()
+
 	hIcon := w32.LoadImage(0, syscall.StringToUTF16Ptr("lithium.ico"), w32.IMAGE_ICON, 0, 0, w32.LR_LOADFROMFILE)
 	if hIcon == 0 {
 		panic("LoadImage failed")
