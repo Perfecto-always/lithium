@@ -10,17 +10,23 @@ import (
 	. "github.com/lxn/walk/declarative"
 )
 
+// Added the components here
 type LithiumWindow struct {
 	*walk.MainWindow
+	edit *walk.TextEdit
+	// lb   *walk.ListBox
 }
 
-var file []string
+var (
+	// file        []string
+	currentFile string
+	lineno      uint = 1
+)
 
 func main() {
 	mw := new(LithiumWindow)
 
 	var openAction, showAboutBoxAction *walk.Action
-	var edit *walk.TextEdit
 
 	if err := (MainWindow{
 		AssignTo: &mw.MainWindow,
@@ -36,6 +42,11 @@ func main() {
 						Text:        "&Open File",
 						Shortcut:    Shortcut{Modifiers: walk.ModControl, Key: walk.KeyO},
 						OnTriggered: mw.openAction_Triggered,
+					},
+					Action{
+						Text:        "&Save File",
+						Shortcut:    Shortcut{Modifiers: walk.ModControl, Key: walk.KeyS},
+						OnTriggered: mw.saveFile_Triggered,
 					},
 					Separator{},
 					Action{
@@ -56,16 +67,22 @@ func main() {
 			},
 		},
 		MinSize: Size{Width: 300, Height: 200},
-		Layout:  VBox{},
+		Layout: VBox{
+			MarginsZero: true,
+			SpacingZero: true,
+		},
 		// All things in the view that interactable upon opening
 		Children: []Widget{
 			HSplitter{
 				Children: []Widget{
-					ListBox{
-						MaxSize: Size{Width: 200},
-						MinSize: Size{Width: 100}},
-					TextEdit{AssignTo: &edit,
-						MinSize: Size{Width: 800}},
+					// ListBox{
+					// 	// AssignTo: &mw.lb,
+					// 	MaxSize: Size{Width: 200},
+					// 	MinSize: Size{Width: 100}},
+					TextEdit{AssignTo: &mw.edit,
+						MinSize: Size{Width: 800},
+						Font:    Font{PointSize: 16},
+					},
 				},
 			},
 		},
@@ -77,6 +94,8 @@ func main() {
 }
 
 func (mw *LithiumWindow) openAction_Triggered() {
+	lineno = 1
+
 	dlg := new(walk.FileDialog)
 	dlg.Title = "Select File"
 	dlg.Filter = "All Files (*.*)|*.*"
@@ -87,11 +106,39 @@ func (mw *LithiumWindow) openAction_Triggered() {
 		fmt.Println("No file selected.")
 	} else {
 		fmt.Println("Selected file:", dlg.FilePath)
-		file[0] = dlg.FilePath
-		// Here you can do something with the selected file path
+		buf, err := os.ReadFile(dlg.FilePath)
+
+		if err != nil {
+			fmt.Println("Error reading file: ", dlg.FilePath)
+		}
+
+		currentFile = dlg.FilePath
+		for i := range buf {
+			if buf[i] == 13 {
+				if buf[i+1] == 10 {
+					lineno++
+				}
+			}
+		}
+		mw.edit.SetText(string(buf))
 	}
 }
 
 func (mw *LithiumWindow) showAboutBoxAction_Triggered() {
 	walk.MsgBox(mw, "About Lithium", "Lithium is a supposed to be light weight text-editor.", walk.MsgBoxIconInformation)
+}
+
+// Function to save the content of TextEdit to a file
+func (mw *LithiumWindow) saveFile_Triggered() {
+	if currentFile == "" {
+		return
+	}
+	// Get the text content from the TextEdit
+	textContent := mw.edit.Text()
+
+	// Write the text content to the file
+	err := os.WriteFile(currentFile, []byte(textContent), 0644)
+	if err != nil {
+		fmt.Println("Error saving file")
+	}
 }
