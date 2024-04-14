@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/lxn/walk"
 
@@ -14,7 +15,7 @@ import (
 type LithiumWindow struct {
 	*walk.MainWindow
 	edit *walk.TextEdit
-	// lb   *walk.ListBox
+	lb   *walk.ListBox
 }
 
 var (
@@ -24,7 +25,10 @@ var (
 )
 
 func main() {
+	items := []string{}
 	mw := new(LithiumWindow)
+
+	// Create a slice of items for the list
 
 	var openAction, showAboutBoxAction *walk.Action
 
@@ -75,13 +79,18 @@ func main() {
 		Children: []Widget{
 			HSplitter{
 				Children: []Widget{
-					// ListBox{
-					// 	// AssignTo: &mw.lb,
-					// 	MaxSize: Size{Width: 200},
-					// 	MinSize: Size{Width: 100}},
+					ListBox{AssignTo: &mw.lb,
+						Model:              items,
+						MinSize:            Size{Width: 100},
+						MaxSize:            Size{Width: 100},
+						RightToLeftReading: false,
+						AlwaysConsumeSpace: false,
+						StretchFactor:      0,
+					},
 					TextEdit{AssignTo: &mw.edit,
-						MinSize: Size{Width: 800},
-						Font:    Font{PointSize: 16},
+						// MinSize: Size{Width: 800},
+						AlwaysConsumeSpace: true,
+						Font:               Font{PointSize: 16},
 					},
 				},
 			},
@@ -95,7 +104,6 @@ func main() {
 
 func (mw *LithiumWindow) openAction_Triggered() {
 	lineno = 1
-
 	dlg := new(walk.FileDialog)
 	dlg.Title = "Select File"
 	dlg.Filter = "All Files (*.*)|*.*"
@@ -113,13 +121,16 @@ func (mw *LithiumWindow) openAction_Triggered() {
 		}
 
 		currentFile = dlg.FilePath
+		mw.addLine()
 		for i := range buf {
 			if buf[i] == 13 {
 				if buf[i+1] == 10 {
 					lineno++
+					mw.addLine()
 				}
 			}
 		}
+
 		mw.edit.SetText(string(buf))
 	}
 }
@@ -141,4 +152,11 @@ func (mw *LithiumWindow) saveFile_Triggered() {
 	if err != nil {
 		fmt.Println("Error saving file")
 	}
+}
+
+func (mw *LithiumWindow) addLine() {
+	// Append the new item to the model (slice of strings)
+	model := mw.lb.Model().([]string)
+	model = append(model, strconv.Itoa(int(lineno)))
+	mw.lb.SetModel(model)
 }
